@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from asrep_Roaster import cli, enum, asrep, report
+from asrep_Roaster import cli, enum, asrep, report, cracker
 
 def main():
     args = cli.parse_args()
@@ -17,6 +17,17 @@ def main():
 
     print(f"[*] Exporting hashes to {args.hashes}")
     report.export_hashes(selected_users, args.hashes)
+
+    if args.crack:
+        print(f"[*] Starting automatic cracking with wordlist: {args.wordlist}")
+        cracker.crack_hashes(
+            selected_users,
+            hash_file=args.hashes,
+            wordlist=args.wordlist,
+            rules_file=args.rules,
+            timeout=args.crack_timeout
+        )
+        report.generate_full_report(selected_users, args.output)
 
     print("[+] Done.")
 
