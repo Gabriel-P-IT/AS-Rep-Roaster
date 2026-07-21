@@ -25,6 +25,7 @@ Ce projet s'appuie sur `impacket-GetNPUsers` (Fortra/Impacket) comme moteur d'é
 - Génération d'un rapport texte final (`[ROASTABLE]` / `[X]` / `[CRACKED]`)
 - Export séparé des hashes au format compatible Hashcat (mode **18200** pour etype 23)
 - **Cracking automatique intégré** des hashes exportés via Hashcat, avec injection du mot de passe cassé directement dans le rapport
+- **Mode discrétion (`--stealth`)** à 4 niveaux, ajoutant délais, jitter aléatoire et randomisation de l'ordre des requêtes pour limiter la génération d'événements Windows 4768 dans une fenêtre de temps courte
 
 ## Prérequis
 
@@ -39,7 +40,7 @@ python3 Roaster.py -h
 
 usage: Roaster.py [-h] -u USERS -d DOMAIN -dc-ip DC_IP [-o OUTPUT] [--hashes HASHES]
 [--crack] [--wordlist WORDLIST] [--rules RULES]
-[--crack-timeout CRACK_TIMEOUT]
+[--crack-timeout CRACK_TIMEOUT] [--stealth {1,2,3,4}]
 
 AS-REP Roasting Audit Tool (Lab)
 
@@ -55,7 +56,21 @@ Domain controller IP address
 --wordlist WORDLIST Wordlist path used for automatic cracking (default: /usr/share/wordlists/rockyou.txt)
 --rules RULES Optional hashcat rules file (e.g. best64.rule)
 --crack-timeout SECONDS Max seconds allowed for the cracking phase (default: 600)
+--stealth {1,2,3,4} Stealth mode (1=low to 4=paranoid). Adds delays, jitter and randomization between AS-REP requests
 ```
+
+## Mode discrétion (`--stealth`)
+
+Ce mode ajuste le comportement de l'énumération pour réduire la signature réseau et la détectabilité côté SIEM/EDR. Chaque niveau empile les protections du niveau précédent :
+
+| Niveau | Délai entre requêtes | Ordre des utilisateurs | Jitter aléatoire | Timeout étendu | Verbosité |
+|---|---|---|---|---|---|
+| 1 | 1–2s | séquentiel | non | non | normale |
+| 2 | 3–6s | séquentiel | ±1s | non | normale |
+| 3 | 8–15s | aléatoire | ±3s | 60s | normale |
+| 4 | 20–45s | aléatoire | ±5s | 120s | minimale |
+
+Le niveau 4 vise à réduire au maximum les rafales de requêtes AS-REQ visibles dans les journaux Windows (Event ID 4768), en espaçant fortement les tentatives et en limitant les logs affichés côté outil.
 
 ## Exemple de sortie
 ```bash
@@ -103,8 +118,6 @@ Toute utilisation contre un système sans autorisation explicite est illégale e
 
 ### Discrétion accrue de l'énumération
 
-- Ajouter des paramètres `--delay` et `--jitter` pour espacer aléatoirement les requêtes AS-REQ envoyées, réduisant le nombre d'événements Windows 4768 générés dans une fenêtre de temps courte.
-- Introduire un mode `--batch-size` pour tester les utilisateurs par petits lots plutôt qu'en une seule vague, avec pause entre chaque lot.
-- Supporter la randomisation de l'ordre des utilisateurs testés (`--shuffle`), pour casser la logique de scan séquentiel visible côté SIEM.
-- Ajouter une option `--single-etype` pour ne demander qu'un seul type de chiffrement à la fois (au lieu de RC4 + AES en cascade), limitant la signature réseau de l'outil.
-- Documenter dans le rapport final le nombre de requêtes envoyées et leur étalement temporel, pour illustrer pédagogiquement l'impact du delay/jitter sur la détectabilité.
+- Ajouter un paramètre `--batch-size` pour tester les utilisateurs par petits lots plutôt qu'en une seule vague, avec pause entre chaque lot
+- Ajouter une option `--single-etype` pour ne demander qu'un seul type de chiffrement à la fois (au lieu de RC4 + AES en cascade), limitant la signature réseau de l'outil
+- Documenter dans le rapport final le nombre de requêtes envoyées et leur étalement temporel, pour illustrer pédagogiquement l'impact du delay/jitter sur la détectabilité
