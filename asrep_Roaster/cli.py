@@ -3,11 +3,15 @@ from .models import ADUser
 
 def parse_args():
     parser = argparse.ArgumentParser(description="AS-REP Roasting Audit Tool (Lab)")
+    # --- Users Source ---
     parser.add_argument("-u", "--users", required=True, help="File containing the list of users")
+    # --- Target ---
     parser.add_argument("-d", "--domain", required=True, help="Target domain (e.g. lab.local)")
     parser.add_argument("-dc-ip", "--dc-ip", required=True, help="Domain controller IP address")
+    # --- Report ---
     parser.add_argument("-o", "--output", default="report.txt", help="Final report file")
     parser.add_argument("--hashes", default="hashes.txt", help="Hashcat-compatible export file (mode 18200)")
+    # --- Cracking ---
     parser.add_argument("--crack", action="store_true",help="Automatically crack exported hashes with hashcat (mode 18200)")
     parser.add_argument("--wordlist", default="/usr/share/wordlists/rockyou.txt",help="Wordlist path used for automatic cracking (default: rockyou.txt)")
     parser.add_argument("--rules", default=None,help="Optional hashcat rules file (e.g. best64.rule)")
