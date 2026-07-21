@@ -114,7 +114,7 @@ Cet outil est fourni à des fins **strictement éducatives et pédagogiques**, d
 Toute utilisation contre un système sans autorisation explicite est illégale et constitue une infraction pénale. L'auteur de ce projet ne pourra être tenu responsable d'un usage détourné de cet outil.
 
 
-## Roadmap — Améliorations futures
+## Roadmap - Améliorations futures
 
 ### Discrétion accrue de l'énumération
 
