@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 from .models import ADUser
 
@@ -16,6 +17,8 @@ def parse_args():
     parser.add_argument("--wordlist", default="/usr/share/wordlists/rockyou.txt",help="Wordlist path used for automatic cracking (default: rockyou.txt)")
     parser.add_argument("--rules", default=None,help="Optional hashcat rules file (e.g. best64.rule)")
     parser.add_argument("--crack-timeout", type=int, default=600,help="Max seconds allowed for the cracking phase (default: 600)")
+    # --- Stealth ---"
+    parser.add_argument("--stealth",type=int,choices=[1, 2, 3, 4],default=None,help="Stealth mode (1=low to 4=paranoid). Adds delays, jitter and randomization between AS-REP requests.")
     return parser.parse_args()
 
 def interactive_selection(users: list[ADUser]) -> list[ADUser]:
