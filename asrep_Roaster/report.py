@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from .models import ADUser
 
 def generate_full_report(users: list, output_file: str):
@@ -18,8 +19,6 @@ def generate_full_report(users: list, output_file: str):
 def export_hashes(users: list[ADUser], hash_file: str):
     """Exporte les hashes au format Hashcat."""
     with open(hash_file, 'w', encoding='utf-8') as f:
-        # Rappel pour le format etype 23
-        f.write("Hashcat mode 18200\n")
         for user in users:
             if user.hash_value:
                 f.write(f"{user.get_hashcat_format()}\n")
