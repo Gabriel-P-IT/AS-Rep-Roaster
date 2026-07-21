@@ -1,14 +1,26 @@
 #!/usr/bin/env python3
-from asrep_Roaster import cli, enum, asrep, report, cracker
+from asrep_Roaster import cli, enum, asrep, report, cracker, banner
 
 def main():
+
+    banner.print_banner()
+    
     args = cli.parse_args()
 
     print(f"[*] Loading users from {args.users}")
     users = enum.load_users(args.users)
 
+    if args.stealth:
+        print(f"[~] Stealth mode ENABLED — level {args.stealth}")
+
     print(f"[*] Enumerating against {args.domain} ({args.dc_ip}) using impacket-GetNPUsers...")
-    asrep.process_users(users, args.domain, args.dc_ip, args.users)
+    asrep.process_users(
+        users,
+        args.domain,
+        args.dc_ip,
+        args.users,
+        stealth_level=args.stealth
+    )
 
     selected_users = cli.interactive_selection(users)
 
