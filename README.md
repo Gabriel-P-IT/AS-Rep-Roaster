@@ -26,7 +26,7 @@ Ce projet s'appuie sur `impacket-GetNPUsers` (Fortra/Impacket) comme moteur d'é
 - Export séparé des hashes au format compatible Hashcat (mode **18200** pour etype 23)
 - **Cracking automatique intégré** des hashes exportés via Hashcat, avec injection du mot de passe cassé directement dans le rapport
 - **Mode discrétion (`--stealth`)** à 4 niveaux, ajoutant délais, jitter aléatoire et randomisation de l'ordre des requêtes pour limiter la génération d'événements Windows 4768 dans une fenêtre de temps courte
-- **Enum Only** mode sans crack final
+- **Enum Only** mode sans cracking 
 
 ## Prérequis
 
