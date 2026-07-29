@@ -21,6 +21,11 @@ def main():
         args.users,
         stealth_level=args.stealth
     )
+    
+    # --- Enum-only mode ---
+    if args.enum_only:
+        cli.print_enum_only_results(users)
+        return
 
     selected_users = cli.interactive_selection(users)
 
