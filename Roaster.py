@@ -21,7 +21,13 @@ def main():
         args.users,
         stealth_level=args.stealth
     )
-    
+
+    roastable_users = [u for u in users if u.roastable]
+
+    if not roastable_users:
+        print("[-] No roastable users found. Exiting.")
+        return
+        
     # --- Enum-only mode ---
     if args.enum_only:
         cli.print_enum_only_results(users)
