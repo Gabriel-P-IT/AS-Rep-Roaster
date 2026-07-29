@@ -26,6 +26,7 @@ Ce projet s'appuie sur `impacket-GetNPUsers` (Fortra/Impacket) comme moteur d'é
 - Export séparé des hashes au format compatible Hashcat (mode **18200** pour etype 23)
 - **Cracking automatique intégré** des hashes exportés via Hashcat, avec injection du mot de passe cassé directement dans le rapport
 - **Mode discrétion (`--stealth`)** à 4 niveaux, ajoutant délais, jitter aléatoire et randomisation de l'ordre des requêtes pour limiter la génération d'événements Windows 4768 dans une fenêtre de temps courte
+- **Enum Only** mode sans crack final
 
 ## Prérequis
 
@@ -57,6 +58,7 @@ Domain controller IP address
 --rules RULES Optional hashcat rules file (e.g. best64.rule)
 --crack-timeout SECONDS Max seconds allowed for the cracking phase (default: 600)
 --stealth {1,2,3,4} Stealth mode (1=low to 4=paranoid). Adds delays, jitter and randomization between AS-REP requests
+--enum-only
 ```
 
 ## Mode discrétion (`--stealth`)
