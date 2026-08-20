@@ -14,3 +14,10 @@ def load_users(filepath: str) -> list[ADUser]:
             if username:
                 users.append(ADUser(username=username))
     return users
+
+
+def save_users(usernames: list[str], filepath: str) -> None:
+    """Écrit une liste de noms d'utilisateurs dans un fichier texte, un par ligne."""
+    with open(filepath, 'w', encoding='utf-8') as f:
+        for username in usernames:
+            f.write(username + "\n")

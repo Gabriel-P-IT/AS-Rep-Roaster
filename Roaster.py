@@ -1,11 +1,26 @@
 #!/usr/bin/env python3
-from asrep_Roaster import cli, enum, asrep, report, cracker, banner
+from asrep_Roaster import cli, enum, asrep, report, cracker, banner, discovery
 
 def main():
 
     banner.print_banner()
-    
+
     args = cli.parse_args()
+
+    if args.auto_discover:
+        print(f"[*] Auto-discovering users via LDAP against {args.domain} ({args.dc_ip})...")
+        discovered = discovery.discover_users(
+            dc_ip=args.dc_ip,
+            domain=args.domain,
+            username=args.discover_user,
+            password=args.discover_password,
+            use_ldaps=args.discover_ldaps,
+        )
+        if not discovered:
+            print("[-] No users discovered via LDAP. Exiting.")
+            return
+        enum.save_users(discovered, args.users)
+        print(f"[+] Discovered {len(discovered)} user(s), saved to {args.users}")
 
     print(f"[*] Loading users from {args.users}")
     users = enum.load_users(args.users)
