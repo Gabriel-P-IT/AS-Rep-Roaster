@@ -5,10 +5,15 @@ from .models import ADUser
 def parse_args():
     parser = argparse.ArgumentParser(description="AS-REP Roasting Audit Tool (Lab)")
     # --- Users Source ---
-    parser.add_argument("-u", "--users", required=True, help="File containing the list of users")
+    parser.add_argument("-u", "--users", default=None, help="File containing the list of users (omit when using --auto-discover)")
     # --- Target ---
     parser.add_argument("-d", "--domain", required=True, help="Target domain (e.g. lab.local)")
     parser.add_argument("-dc-ip", "--dc-ip", required=True, help="Domain controller IP address")
+    # --- Auto-discovery ---
+    parser.add_argument("--auto-discover", action="store_true", help="Discover domain user accounts via an LDAP query instead of supplying -u/--users (requires the 'ldap3' package)")
+    parser.add_argument("--discover-user", default=None, help="Username for an authenticated LDAP bind during discovery (omit to attempt an anonymous bind)")
+    parser.add_argument("--discover-password", default=None, help="Password for --discover-user")
+    parser.add_argument("--discover-ldaps", action="store_true", help="Use LDAPS (port 636) instead of plaintext LDAP (389) for the discovery bind")
     # --- Report ---
     parser.add_argument("-o", "--output", default="report.txt", help="Final report file")
     parser.add_argument("--hashes", default="hashes.txt", help="Hashcat-compatible export file (mode 18200)")
@@ -27,6 +32,20 @@ def parse_args():
     # Sanity checks
     if args.enum_only and args.crack:
         parser.error("--enum-only and --crack are mutually exclusive.")
+
+    if args.users and args.auto_discover:
+        parser.error("-u/--users and --auto-discover are mutually exclusive.")
+
+    if not args.users and not args.auto_discover:
+        parser.error("Either -u/--users or --auto-discover is required.")
+
+    if args.discover_password and not args.discover_user:
+        parser.error("--discover-password requires --discover-user.")
+
+    # When auto-discovering, this is where the discovered usernames get
+    # written to, then re-loaded through the normal file-based flow.
+    if args.auto_discover and not args.users:
+        args.users = "discovered_users.txt"
 
     return args
 

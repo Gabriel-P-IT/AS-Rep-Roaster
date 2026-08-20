@@ -17,6 +17,7 @@ Ce projet s'appuie sur `impacket-GetNPUsers` (Fortra/Impacket) comme moteur d'é
 ## Fonctionnalités
 
 - Chargement d'une liste d'utilisateurs depuis un fichier texte
+- **Auto-découverte des utilisateurs (`--auto-discover`)** via une requête LDAP sur le DC (bind anonyme ou authentifié), sans besoin de liste pré-établie
 - Énumération contre un domaine Active Directory cible via `impacket-GetNPUsers`
 - Détection des comptes ayant la pré-authentification Kerberos désactivée
 - Parsing automatique des réponses AS-REP retournées
@@ -33,13 +34,16 @@ Ce projet s'appuie sur `impacket-GetNPUsers` (Fortra/Impacket) comme moteur d'é
 - Python 3.10 ou supérieur
 - [Impacket](https://github.com/fortra/impacket) installé avec le binaire `impacket-GetNPUsers` disponible dans le `PATH`
 - [Hashcat](https://hashcat.net/hashcat/) installé et disponible dans le `PATH` (uniquement si l'option `--crack` est utilisée)
+- [`ldap3`](https://pypi.org/project/ldap3/) (uniquement si l'option `--auto-discover` est utilisée)
   
 ## Utilisation
 
 ```bash
 python3 Roaster.py -h
 
-usage: Roaster.py [-h] -u USERS -d DOMAIN -dc-ip DC_IP [-o OUTPUT] [--hashes HASHES]
+usage: Roaster.py [-h] [-u USERS] -d DOMAIN -dc-ip DC_IP [--auto-discover]
+[--discover-user DISCOVER_USER] [--discover-password DISCOVER_PASSWORD]
+[--discover-ldaps] [-o OUTPUT] [--hashes HASHES]
 [--crack] [--wordlist WORDLIST] [--rules RULES]
 [--crack-timeout CRACK_TIMEOUT] [--stealth {1,2,3,4}]
 
@@ -47,10 +51,16 @@ AS-REP Roasting Audit Tool (Lab)
 
 options:
 -h, --help show this help message and exit
--u, --users USERS File containing the list of users
+-u, --users USERS File containing the list of users (omit when using --auto-discover)
 -d, --domain DOMAIN Target domain (e.g. lab.local)
 -dc-ip, --dc-ip DC_IP
 Domain controller IP address
+--auto-discover Discover domain user accounts via an LDAP query instead of supplying -u/--users
+--discover-user DISCOVER_USER
+Username for an authenticated LDAP bind during discovery (omit for anonymous bind)
+--discover-password DISCOVER_PASSWORD
+Password for --discover-user
+--discover-ldaps Use LDAPS (port 636) instead of plaintext LDAP (389) for the discovery bind
 -o, --output OUTPUT Final report file
 --hashes HASHES Hashcat-compatible export file (mode 18200)
 --crack Automatically crack exported hashes with hashcat
@@ -60,6 +70,27 @@ Domain controller IP address
 --stealth {1,2,3,4} Stealth mode (1=low to 4=paranoid). Adds delays, jitter and randomization between AS-REP requests
 --enum-only
 ```
+
+## Auto-découverte des utilisateurs (`--auto-discover`)
+
+Plutôt que de fournir un fichier `-u/--users` pré-établi, l'outil peut interroger le contrôleur de domaine en LDAP pour lister lui-même les comptes utilisateurs actifs (`sAMAccountName`), avant de lancer l'énumération AS-REP normalement.
+
+- Sans `--discover-user`/`--discover-password` : tentative de **bind anonyme** (fonctionne si le DC l'autorise encore, ce qui est rare en configuration durcie)
+- Avec `--discover-user`/`--discover-password` : **bind authentifié** avec des identifiants à faible privilège
+- `--discover-ldaps` : force LDAPS (port 636) au lieu du LDAP en clair (port 389)
+
+Les comptes découverts sont écrits dans le fichier `-u` s'il est fourni, sinon dans `discovered_users.txt` par défaut, puis rechargés normalement — le reste du pipeline (stealth, sélection interactive, cracking) est inchangé.
+
+```bash
+# Bind anonyme
+python3 Roaster.py --auto-discover -d lab.local -dc-ip 10.129.95.180 --hashes hash.txt
+
+# Bind authentifié (identifiants à faible privilège)
+python3 Roaster.py --auto-discover --discover-user jdoe --discover-password 'P@ssw0rd' \
+    -d lab.local -dc-ip 10.129.95.180 --hashes hash.txt --crack
+```
+
+> ⚠️ La découverte LDAP nécessite le paquet `ldap3` (`pip install ldap3`). Sans lui, `--auto-discover` échoue proprement avec un message d'erreur explicite.
 
 ## Mode discrétion (`--stealth`)
 
